@@ -458,3 +458,172 @@ jobs:
     }
   ]
 }
+tcae-geriatria-app/
+├─ index.html
+├─ manifest.json
+├─ sw.js
+├─ README.md
+├─ assets/
+│  ├─ styles/main.css
+│  └─ icons/icon-192.png, icon-512.png
+├─ src/
+│  ├─ app.js
+│  ├─ router.js
+│  ├─ ui/nav.js
+│  ├─ ui/flashcards.js
+│  ├─ ui/testRunner.js
+│  ├─ ui/simulacros.js
+│  └─ utils/fetchJSON.js
+├─ data/
+│  ├─ summaries/comunes.md, tcae_sas.md, geriatria.md
+│  ├─ flashcards/comunes.json, tcae_sas.json, geriatria.json
+│  └─ tests/{comunes,tcae_sas,geriatria}/mini1.json, simulacro1.json...
+└─ .github/workflows/pages.yml
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>TCAE & Geriatría – Estudio</title>
+  <link rel="stylesheet" href="./assets/styles/main.css" />
+  <link rel="manifest" href="./manifest.json" />
+</head>
+<body>
+  <header>
+    <h1>TCAE & Aux. Geriatría</h1>
+    <nav id="nav"></nav>
+  </header>
+  <main id="app"></main>
+  <footer><small>Hecho con 💙 por Lourdes</small></footer>
+  <script type="module" src="./src/app.js"></script>
+</body>
+</html>
+body { margin:0; font-family:sans-serif; background:#0f1320; color:#e8ecff; }
+header,footer { background:#161b2e; padding:1rem; }
+nav a { margin:.25rem; padding:.5rem; border-radius:.5rem; text-decoration:none; color:#e8ecff; }
+nav a.active { background:#6ea8fe; color:#0b0d18; }
+.card { background:#161b2e; padding:1rem; margin:.5rem 0; border-radius:.5rem; }
+.button { background:#6ea8fe; color:#0b0d18; border:none; padding:.5rem 1rem; border-radius:.5rem; cursor:pointer; }
+import { initNav } from './ui/nav.js';
+import { router } from './router.js';
+
+initNav([
+  { path: '#/resumenes', label: 'Resúmenes' },
+  { path: '#/flashcards', label: 'Tarjetas' },
+  { path: '#/mini-tests', label: 'Mini‑tests' },
+  { path: '#/simulacros', label: 'Simulacros' }
+]);
+
+window.addEventListener('hashchange', router);
+window.addEventListener('load', router);
+import { renderHome } from './ui/flashcards.js';
+import { renderFlashcards } from './ui/flashcards.js';
+import { renderTests } from './ui/testRunner.js';
+import { renderSimulacros } from './ui/simulacros.js';
+
+export function router() {
+  const app = document.getElementById('app');
+  const route = location.hash || '#/resumenes';
+  if (route.startsWith('#/resumenes')) return renderHome(app);
+  if (route.startsWith('#/flashcards')) return renderFlashcards(app);
+  if (route.startsWith('#/mini-tests')) return renderTests(app,'mini');
+  if (route.startsWith('#/simulacros')) return renderSimulacros(app);
+}
+import { getJSON } from '../utils/fetchJSON.js';
+
+export async function renderFlashcards(el) {
+  el.innerHTML = `<h2>Tarjetas</h2><select id="deck">
+    <option value="comunes">Comunes</option>
+    <option value="tcae_sas">TCAE SAS</option>
+    <option value="geriatria">Geriatría</option>
+  </select><div id="cards"></div>`;
+  const deckSel = document.getElementById('deck');
+  deckSel.addEventListener('change',()=>loadDeck(deckSel.value));
+  loadDeck(deckSel.value);
+
+  async function loadDeck(name){
+    const data = await getJSON(`./data/flashcards/${name}.json`);
+    document.getElementById('cards').innerHTML = data.map(c=>`
+      <div class="card"><p><strong>${c.front}</strong></p><p>${c.back}</p></div>
+    `).join('');
+  }
+}
+import { getJSON } from '../utils/fetchJSON.js';
+
+export async function renderTests(el,type='mini'){
+  el.innerHTML = `<h2>${type==='mini'?'Mini‑tests':'Simulacros'}</h2>
+    <select id="exam"></select><div id="quiz"></div>`;
+  const exam=document.getElementById('exam');
+  exam.innerHTML=['1','2','3'].map(n=>`<option value="${type}${n}">${type} ${n}</option>`).join('');
+  exam.addEventListener('change',()=>loadExam(exam.value));
+  loadExam(exam.value);
+
+  async function loadExam(name){
+    const data=await getJSON(`./data/tests/comunes/${name}.json`);
+    startQuiz(data);
+  }
+  function startQuiz(test){
+    let idx=0,score=0;
+    const quiz=document.getElementById('quiz');
+    render();
+    function render(){
+      const q=test.items[idx];
+      quiz.innerHTML=`<p>${q.prompt}</p>${q.options.map((o,i)=>`<label><input type="radio" name="opt" value="${i}">${o}</label>`).join('')}<button id="next">Responder</button>`;
+      document.getElementById('next').onclick=()=>{
+        const sel=quiz.querySelector('input[name="opt"]:checked');
+        if(!sel)return;
+        if(Number(sel.value)===q.answerIndex)score++;
+        idx++;
+        if(idx<test.items.length)render();else quiz.innerHTML=`<h3>Resultado: ${score}/${test.items.length}</h3>`;
+      };
+    }
+  }
+}
+{
+  "name": "TCAE & Aux. Geriatría",
+  "short_name": "TCAE Geriatría",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0f1320",
+  "theme_color": "#6ea8fe",
+  "icons": [
+    { "src": "./assets/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "./assets/icons/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
+const CACHE='tcae-geriatria-v1';
+const ASSETS=['./','./index.html','./assets/styles/main.css','./src/app.js'];
+self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS))));
+self.addEventListener('fetch',e=>e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request))));
+# TCAE & Auxiliar de Geriatría – App de estudio
+
+App web ligera para preparar oposiciones.
+
+## Funciones
+- Resúmenes en Markdown
+- Tarjetas flash (JSON)
+- Mini‑tests (20 preguntas)
+- Simulacros (50 preguntas)
+- PWA offline
+
+## Publicar en GitHub Pages
+1. Subir repo.
+2. Settings → Pages → Deploy from branch → main.
+3. Abrir URL pública.
+   name: Deploy Pages
+on:
+  push:
+    branches: [ main ]
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/configure-pages@v4
+      - uses: actions/upload-pages-artifact@v3
+        with: { path: . }
+      - uses: actions/deploy-pages@v4
