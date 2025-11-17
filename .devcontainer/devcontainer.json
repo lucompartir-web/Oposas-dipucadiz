@@ -1,0 +1,8 @@
+{
+  "image": "mcr.microsoft.com/devcontainers/universal:2",
+  "features": {}
+}
+tu-repo/
+ └── .github/
+      └── workflows/
+           └── ci.yml
