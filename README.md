@@ -621,9 +621,11 @@ permissions:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+   
     steps:
       - uses: actions/checkout@v4
       - uses: actions/configure-pages@v4
       - uses: actions/upload-pages-artifact@v3
         with: { path: . }
       - uses: actions/deploy-pages@v4
+https://doc.termux.com
